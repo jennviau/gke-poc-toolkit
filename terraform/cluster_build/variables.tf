@@ -84,10 +84,14 @@ variable "ip_source_ranges_ssh" {
   default     = []
 }
 
-variable "shared_vpc_name" {
-  type        = string
-  description = "The name of the Shared VPC - This is optional and only valid if a Shared VPC is used"
-  default     = ""
+variable "node_pool" {
+  type    = string
+  default = "node-pool"
+}
+
+variable "private_endpoint" {
+  type    = bool
+  default = false
 }
 
 variable "shared_vpc_subnet_name" {
@@ -112,21 +116,6 @@ variable "shared_vpc_ip_range_services_name" {
   type        = string
   description = "The secondary ip range to use for services in the shared vpc  - This is optional and only valid if a Shared VPC is used"
   default     = ""
-}
-
-variable "node_pool" {
-  type    = string
-  default = "node-pool"
-}
-
-variable "private_endpoint" {
-  type    = bool
-  default = false
-}
-
-variable "zone" {
-  type    = string
-  default = "us-central1-a"
 }
 # Need this default to run PR build test
 variable "auth_ip" {

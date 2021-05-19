@@ -25,13 +25,11 @@ module "gke" {
   name                    = var.cluster_name
   region                  = var.region
   config_connector        = var.config_connector
-  network                 = local.network_name
-  subnetwork              = local.subnetwork_name
-  network_project_id      = local.project_id
-  ip_range_pods           = local.ip_range_pods
-  ip_range_services       = local.ip_range_services
+  network                 = module.vpc.network_name
+  subnetwork              = module.vpc.subnets_names[0]
+  ip_range_pods           = module.vpc.subnets_secondary_ranges[0].*.range_name[0]
+  ip_range_services       = module.vpc.subnets_secondary_ranges[0].*.range_name[1]
   enable_private_endpoint = var.private_endpoint
-  enable_shielded_nodes   = true
   master_ipv4_cidr_block  = "172.16.0.16/28"
   master_authorized_networks = [{
     cidr_block   = var.private_endpoint ? "${module.bastion[0].ip_address}/32" : "${var.auth_ip}/32"
