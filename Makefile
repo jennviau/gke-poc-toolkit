@@ -5,7 +5,9 @@ SHELL := /usr/bin/env bash
 help:
 	@echo 'Usage:'
 	
-	@echo '	make shared-vpc        	Create Shared VPC in a pre-existing host project'
+	@echo '	make create CLUSTER=(private|public)	Create a GKE Cluster and associated resources. Additional Options for node pools:   '
+	@echo '						  WINDOWS=true        Creates an additional Node Pool with Windows Nodes'  
+	@echo '						  PREEMPTIBLE=true    Creates an additional Linux Node Pool, using pre-emptible nodes'
 	@echo	''
 	@echo '	make create        		Create Cluster and associated resources'
 	@echo	''
@@ -31,7 +33,8 @@ shared-vpc:
 
 .PHONY: create
 create:
-	@source	scripts/create_cluster.sh
+	@source	scripts/create_cluster.sh $(CLUSTER) $(WINDOWS) $(PREEMPTIBLE)
+
 
 .PHONY: secure
 secure:

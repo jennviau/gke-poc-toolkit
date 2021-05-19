@@ -208,6 +208,13 @@ else
    STATE="local"
 fi
 
+PREEMPTIBLE=$3
+if [[ "${PREEMPTIBLE}" == true ]]; then
+    PREEMPTIBLE="true"
+else
+    PREEMPTIBLE="false"
+
+fi
 # If Terraform is run without this file, the user will be prompted for values.
 # This check verifies if the file exists and prompts user for deletion
 # We don't want to overwrite a pre-existing tfvars file
@@ -231,18 +238,11 @@ project_id="${PROJECT}"
 governance_project_id="${GOVERNANCE_PROJECT}"
 region="${REGION}"
 private_endpoint="${PRIVATE}"
-cluster_name="${CLUSTER_TYPE}-endpoint-cluster"
-vpc_name="${CLUSTER_TYPE}-cluster-network"
-subnet_name="${CLUSTER_TYPE}-cluster-subnet"
-node_pool="${CLUSTER_TYPE}-node-pool"
+cluster_name="$1-endpoint-cluster"
+network_name="$1-cluster-network"
+subnet_name="$1-cluster-subnet"
 zone = "${ZONE}"
 auth_ip = "${AUTH_IP}"
 windows_nodepool = "${WINDOWS}"
-preemptible_nodes = "${PREEMPTIBLE}"
-shared_vpc="${SHARED_VPC}"
-shared_vpc_name="${SHARED_VPC_NAME}"
-shared_vpc_subnet_name="${SHARED_VPC_SUBNET_NAME}"
-shared_vpc_project_id="${SHARED_VPC_PROJECT_ID}"
-shared_vpc_ip_range_pods_name="${POD_IP_RANGE_NAME}"
-shared_vpc_ip_range_services_name="${SERVICE_IP_RANGE_NAME}"
+preemptible_nodepool = "${PREEMPTIBLE}"
 EOF
