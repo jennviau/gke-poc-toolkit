@@ -95,7 +95,6 @@ locals {
 
 
 
-
 // Enable APIs needed in the gke cluster project
 module "enabled_google_apis" {
   source  = "terraform-google-modules/project-factory/google//modules/project_services"
