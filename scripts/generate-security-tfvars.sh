@@ -25,10 +25,21 @@ set -euo pipefail
 
 ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 
-source "$ROOT/scripts/common.sh"
+# Set Terraform and Script Roots
+
+TERRAFORM_ROOT="${ROOT}/terraform/security"
+SCRIPT_ROOT="${ROOT}/scripts"
+
+# shellcheck source=scripts/common.sh
+
+source "${SCRIPT_ROOT}/common.sh"
 source "${ROOT}/environment-variables"
 
-TFVARS_FILE="./terraform/security/terraform.tfvars"
+# Set Terraform Variables file
+
+TFVARS_FILE="${TERRAFORM_ROOT}/terraform.tfvars"
+
+
 
 # Obtain the needed env variables. Variables are only created if they are
 # currently empty. This allows users to set environment variables if they
@@ -36,65 +47,40 @@ TFVARS_FILE="./terraform/security/terraform.tfvars"
 #
 # The - in the initial variable check prevents the script from exiting due
 # from attempting to use an unset variable.
+
+
 [[ -z "${REGION-}" ]] && REGION="$(gcloud config get-value compute/region)"
 if [[ -z "${REGION}" ]]; then
-    echo "https://cloud.google.com/compute/docs/regions-zones/changing-default-zone-region" 1>&2
-    echo "gcloud cli must be configured with a default region." 1>&2
-    echo "run 'gcloud config set compute/region REGION'." 1>&2
-    echo "replace 'REGION' with the region name like us-west1." 1>&2
-    exit 1;
-fi
-
-[[ -z "${ZONE-}" ]] && ZONE="$(gcloud config get-value compute/zone)"
-if [[ -z "${ZONE}" ]]; then
-    echo "https://cloud.google.com/compute/docs/regions-zones/changing-default-zone-region" 1>&2
-    echo "gcloud cli must be configured with a default zone." 1>&2
-    echo "run 'gcloud config set compute/zone ZONE'." 1>&2
-    echo "replace 'ZONE' with the zone name like us-west1-a." 1>&2
+    tput setaf 1; echo "" 1>&2
+    echo $'ERROR: gcloud cli must be configured with a default region\n\nPlease set your region with \'gcloud config set compute/region REGION\'\nReplace \'REGION\' with the region name like us-west1.' 1>&2
     exit 1;
 fi
 
 [[ -z "${PROJECT-}" ]] && PROJECT="$(gcloud config get-value core/project)"
 if [[ -z "${PROJECT}" ]]; then
-    echo "gcloud cli must be configured with a default project." 1>&2
-    echo "run 'gcloud config set core/project PROJECT'." 1>&2
-    echo "replace 'PROJECT' with the project name." 1>&2
+    tput setaf 1; echo "" 1>&2
+    echo $'ERROR: gcloud cli must be configured with a default Project\n\nPlease set your project with\n \'gcloud config set core/project PROJECT\'\nReplace \'PROJECT\' with the project name' 1>&2
+    exit 1;
+fi
+
+[[ -z "${ZONE-}" ]] && ZONE="$(gcloud config get-value compute/zone)"
+if [[ -z "${ZONE}" ]]; then
+    tput setaf 1; echo "" 1>&2
+    echo $'ERROR: gcloud cli must be configured with a default zone\n\nPlease set your zone with \'gcloud config set compute/zone ZONE\'\nReplace \'ZONE\' with the zone name like us-west1-a.' 1>&2
     exit 1;
 fi
 
 [[ -z "${GOVERNANCE_PROJECT-}" ]] && GOVERNANCE_PROJECT="$(gcloud config get-value core/project)"
 if [[ -z "${GOVERNANCE_PROJECT}" ]]; then
-    echo "This script requires a project for governance resources." 1>&2
-    echo "run 'export GOVERNANCE_PROJECT=PROJECT'." 1>&2
-    echo "replace 'PROJECT' with the project name." 1>&2
+    tput setaf 1; echo "" 1>&2
+    echo $'ERROR: This script requires a project for governance resources.\nPlease update the GOVERNANCE_PROJECT information in `environment-variables`' 1>&2
     exit 1;
 fi
 
-if [ -z ${PUBLIC_CLUSTER+x} ] || [[ ${PUBLIC_CLUSTER} != true ]]; then
-    PRIVATE="true"
-    CLUSTER_TYPE="private"
-    echo "creating private cluster: access to the the cluster master endpoint will be limited to the bastion host" 1>&2
-else
-    PRIVATE="false"
-    CLUSTER_TYPE="public"
-    echo "creating public cluster: cluster master endpoint will be exposed as a public endpoint" 1>&2
-fi
-
-if [[ "${STATE}" == gcs ]]; then
-    STATE="gcs"
-else
-    STATE="local"
-
-fi
-# This check verifies if the WINDOWS_CLUSTER boolean value has been set to true
-#  - If set to true, a Windows GKE cluster is created
-#  - If not set, the boolean value defaults to false and a linux GKE cluster is created
-if [ -z ${WINDOWS_CLUSTER+x} ] || [[ ${WINDOWS_CLUSTER} != true ]]; then
-    WINDOWS="false"
-    echo "creating a linux GKE cluster" 1>&2
-else
-    WINDOWS="true"
-    echo "creating a Windows GKE cluster" 1>&2
+if [[ "${STATE}" = "gcs" ]]; then
+   STATE="gcs"
+	else
+   STATE="local"
 fi
 
 # If Terraform is run without this file, the user will be prompted for values.
@@ -103,10 +89,10 @@ fi
 if [[ -f "${TFVARS_FILE}" ]]
 then
     while true; do
-        echo ""
-         read -p "${TFVARS_FILE} already exists indicating a previous execution. This file needs to be removed or renamed before rerunning the deployment. Select yes(y) to delete or no(n) to cancel execution: " yn ; tput sgr0 
+    		tput setaf 3; echo "" 1>&2
+        read -p $'WARNING: Found an existing terraform.tfvars file, indicating a previous execution.\n\nThis file needs to be removed before a new deployment.\nSelect yes(y) to delete or no(n) to cancel execution: ' yn ; tput sgr0 
         case $yn in
-            [Yy]* ) echo "Deleting and recreating ${TFVARS_FILE}"; rm ${TFVARS_FILE}; break;;
+            [Yy]* ) echo "Deleting and recreating terraform.tfvars"; rm ${TFVARS_FILE}; break;;
             [Nn]* ) echo "Cancelling execution";exit ;;
             * ) echo "Incorrect input. Cancelling execution";exit 1;;
         esac
@@ -115,10 +101,10 @@ fi
 
 # Write out all the values we gathered into a tfvars file so you don't
 # have to enter the values manually
-cat <<EOF > "${TFVARS_FILE}"
-project_id="${PROJECT}"
-zone="${ZONE}"
-region="${REGION}"
-governance_project_id="${GOVERNANCE_PROJECT}"
-cluster_name="${CLUSTER_TYPE}-endpoint-cluster"
+cat > ${TFVARS_FILE} <<-EOF 
+project_id						= "${PROJECT}"
+zone									= "${ZONE}"
+region								= "${REGION}"
+governance_project_id	= "${GOVERNANCE_PROJECT}"
+cluster_name					= "${CLUSTER_TYPE}-endpoint-cluster"
 EOF
