@@ -20,29 +20,31 @@ set -o pipefail
 # Locate the root directory
 ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 
-# shellcheck source=scripts/common.sh
-source "$ROOT/scripts/common.sh"
-source "${ROOT}/environment-variables"
-# Tear down Terraform-managed resources and remove generated tfvars
-cd "$ROOT/terraform/cluster_build" 
+# Set Terraform and Script Roots
 
-# Perform the destroy
+TERRAFORM_ROOT="${ROOT}/terraform/cluster_build"
+SCRIPT_ROOT="${ROOT}/scripts"
+
+# shellcheck source=scripts/common.sh
+source "${SCRIPT_ROOT}/common.sh"
+source "${ROOT}/environment-variables"
+
+# Tear down Terraform-managed resources and remove generated tfvars
 
 if [ "$STATE" == gcs ]; then 
-   cd "${ROOT}/terraform/cluster_build" 
-   sed -i "s/local/gcs/g" backend.tf
-   (cd "${ROOT}/terraform/cluster_build"; terraform init -input=false -backend-config="bucket=$BUCKET")
-   terraform state rm "module.kms" 
-   (cd "${ROOT}/terraform/cluster_build"; terraform destroy -input=false -auto-approve)
-   rm -f "$ROOT/terraform/cluster_build/terraform.tfvars"
-   gsutil -m rm -r gs://$BUCKET
+  cd ${TERRAFORM_ROOT}
+	terraform init -input=false -backend-config="bucket=$BUCKET"
+  terraform state rm "module.kms"
+  terraform destroy -input=false -auto-approve
+  rm -f "${TERRAFORM_ROOT}/terraform.tfvars"
+  gsutil -m rm -r gs://$BUCKET
 fi
 if [ "$STATE" == local ]; then
- cd "${ROOT}/terraform/cluster_build"
- sed -i "s/gcs/local/g" backend.tf
- (cd "${ROOT}/terraform/cluster_build"; terraform init -input=false)
- (cd "${ROOT}/terraform/cluster_build"; terraform destroy -input=false -auto-approve)
- rm -f "$ROOT/terraform/cluster_build/terraform.tfvars"
- rm -f "$ROOT/terraform/cluster_build/terraform.tfstate"
+	cd ${TERRAFORM_ROOT}
+ 	terraform init -input=false
+ 	terraform state rm "module.kms"
+  terraform destroy -input=false -auto-approve
+ 	rm -f "${TERRAFORM_ROOT}/terraform.tfvars"
+  rm -f "${TERRAFORM_ROOT}/terraform.tfstate"
 fi
 
